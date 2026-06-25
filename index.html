@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bill Fund">
+<title>Bill Fund</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0f2ff;
+    --muted: #8890b0;
+    --accent: #4f7dff;
+    --accent-dim: rgba(79,125,255,0.15);
+    --green: #2ecc8f;
+    --green-dim: rgba(46,204,143,0.15);
+    --red: #ff5f6d;
+    --red-dim: rgba(255,95,109,0.15);
+    --amber: #ffb347;
+    --amber-dim: rgba(255,179,71,0.15);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    max-width: 430px;
+    margin: 0 auto;
+    padding-bottom: 80px;
+  }
+  .header {
+    padding: 56px 20px 16px;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .app-title { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  .app-subtitle { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .week-badge {
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(79,125,255,0.3);
+  }
+
+  .nav {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 20;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-btn {
+    flex: 1; padding: 12px 0 10px;
+    background: none; border: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--muted); font-size: 10px; font-weight: 500;
+    transition: color 0.15s;
+  }
+  .nav-btn.active { color: var(--accent); }
+  .nav-icon { font-size: 22px; line-height: 1; }
+
+  .page { display: none; padding: 16px 20px; }
+  .page.active { display: block; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .card-value { font-size: 32px; font-weight: 700; letter-spacing: -1px; }
+  .card-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .stat-value.green { color: var(--green); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.amber { color: var(--amber); }
+  .stat-value.blue { color: var(--accent); }
+
+  .section-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin: 20px 0 10px; }
+
+  .bill-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .bill-row:last-child { border-bottom: none; }
+  .bill-name { font-size: 15px; font-weight: 500; }
+  .bill-due { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .bill-amount { font-size: 16px; font-weight: 600; }
+  .bill-amount.paid { color: var(--green); text-decoration: line-through; opacity: 0.6; }
+  .bill-status {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px; flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .bill-status.done { background: var(--green); border-color: var(--green); }
+  .bill-left { flex: 1; }
+  .bill-right { display: flex; align-items: center; gap: 10px; }
+
+  .week-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+  .week-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .week-name { font-size: 15px; font-weight: 600; }
+  .week-total {
+    font-size: 13px; font-weight: 700;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 3px 10px; border-radius: 20px;
+  }
+  .week-total.heavy { background: var(--amber-dim); color: var(--amber); }
+  .week-total.light { background: var(--green-dim); color: var(--green); }
+
+  .transfer-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .transfer-row:last-child { border-bottom: none; }
+  .transfer-name { font-size: 14px; color: var(--text); }
+  .transfer-due { font-size: 11px; color: var(--muted); }
+  .transfer-amt { font-size: 14px; font-weight: 600; }
+
+  .emergency-list { margin-top: 4px; }
+  .emergency-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--red-dim);
+    border: 1px solid rgba(255,95,109,0.2);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .emergency-desc { font-size: 14px; font-weight: 500; color: var(--text); }
+  .emergency-date { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .emergency-amount { font-size: 16px; font-weight: 700; color: var(--red); }
+  .emergency-delete { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 0 0 10px; }
+
+  .add-btn {
+    width: 100%; padding: 16px;
+    background: var(--accent);
+    color: white; border: none;
+    border-radius: var(--radius);
+    font-size: 16px; font-weight: 600;
+    cursor: pointer; margin-top: 8px;
+    transition: opacity 0.15s;
+  }
+  .add-btn:active { opacity: 0.8; }
+  .add-btn.secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 100;
+    align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+    width: 100%; max-width: 430px;
+    border-top: 1px solid var(--border);
+  }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 13px; color: var(--muted); margin-bottom: 6px; display: block; }
+  .form-input {
+    width: 100%; padding: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text); font-size: 16px;
+    outline: none;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 4px; }
+  .modal-actions .add-btn { flex: 1; }
+
+  .progress-bar-wrap { background: var(--surface2); border-radius: 4px; height: 6px; margin-top: 8px; overflow: hidden; }
+  .progress-bar { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.4s; }
+  .progress-bar.green { background: var(--green); }
+  .progress-bar.amber { background: var(--amber); }
+  .progress-bar.red { background: var(--red); }
+
+  .alert {
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .alert.warning { background: var(--amber-dim); border: 1px solid rgba(255,179,71,0.25); color: var(--amber); }
+  .alert.danger  { background: var(--red-dim);   border: 1px solid rgba(255,95,109,0.25); color: var(--red); }
+  .alert.success { background: var(--green-dim); border: 1px solid rgba(46,204,143,0.25); color: var(--green); }
+  .alert.info    { background: var(--accent-dim);border: 1px solid rgba(79,125,255,0.25); color: var(--accent); }
+
+  .divider { height: 1px; background: var(--border); margin: 4px 0; }
+  .row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+  .row-label { font-size: 14px; color: var(--muted); }
+  .row-value { font-size: 14px; font-weight: 600; }
+  .row-value.green { color: var(--green); }
+  .row-value.red { color: var(--red); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="app-title">Bill Fund</div>
+      <div class="app-subtitle" id="headerSub">Loading...</div>
+    </div>
+    <div class="week-badge" id="weekBadge">Week —</div>
+  </div>
+</div>
+
+<!-- PAGE: HOME -->
+<div class="page active" id="page-home">
+
+  <div class="stat-grid" style="margin-top:16px;">
+    <div class="stat">
+      <div class="stat-label">Set aside this week</div>
+      <div class="stat-value blue" id="setAsideAmt">$0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Keep in checking</div>
+      <div class="stat-value green" id="keepChecking">$0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Bills due this week</div>
+      <div class="stat-value" id="billsDueAmt">$0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Extra for debt payoff</div>
+      <div class="stat-value green" id="extraDebt">$0</div>
+    </div>
+  </div>
+
+  <div id="alertArea"></div>
+
+  <div class="section-title">This week's transfers</div>
+  <div class="card" id="thisWeekBills">
+    <div style="color:var(--muted);font-size:14px;">No bills due this week</div>
+  </div>
+
+  <div class="section-title">Paycheck breakdown</div>
+  <div class="card">
+    <div class="row"><span class="row-label">Weekly take-home</span><span class="row-value" id="paycheckAmt">$1,362</span></div>
+    <div class="divider"></div>
+    <div class="row"><span class="row-label">To savings (bill fund)</span><span class="row-value red" id="toSavings">-$777</span></div>
+    <div class="row"><span class="row-label">Emergency expenses</span><span class="row-value red" id="emergImpact">-$0</span></div>
+    <div class="divider"></div>
+    <div class="row"><span class="row-label">Available for spending</span><span class="row-value green" id="available">$585</span></div>
+  </div>
+
+</div>
+
+<!-- PAGE: BILLS -->
+<div class="page" id="page-bills">
+
+  <div style="margin-top:16px;" id="billsByWeek"></div>
+
+</div>
+
+<!-- PAGE: EMERGENCY -->
+<div class="page" id="page-emergency">
+
+  <div style="margin-top:16px;">
+    <div class="card">
+      <div class="card-label">Total emergency expenses this month</div>
+      <div class="card-value red" id="emergTotal">$0</div>
+      <div class="card-sub" id="emergImpactText">No impact on current plan</div>
+      <div class="progress-bar-wrap" style="margin-top:12px;">
+        <div class="progress-bar red" id="emergBar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="section-title">Emergency expenses</div>
+    <div id="emergencyList">
+      <div style="color:var(--muted);font-size:14px;padding:8px 0;">No emergency expenses logged</div>
+    </div>
+
+    <button class="add-btn" onclick="openEmergModal()">+ Log emergency expense</button>
+  </div>
+
+</div>
+
+<!-- PAGE: DEBTS -->
+<div class="page" id="page-debts">
+  <div style="margin-top:16px;">
+
+    <div class="card">
+      <div class="card-label">Consumer debt remaining</div>
+      <div class="card-value" id="totalDebtAmt">$25,560</div>
+      <div class="card-sub">Excluding truck — on track for Oct 2027</div>
+      <div class="progress-bar-wrap" style="margin-top:12px;">
+        <div class="progress-bar green" id="debtBar" style="width:15%"></div>
+      </div>
+    </div>
+
+    <div class="section-title">Payoff order (avalanche)</div>
+
+    <div id="debtList"></div>
+
+  </div>
+</div>
+
+<!-- EMERGENCY MODAL -->
+<div class="modal-overlay" id="emergModal">
+  <div class="modal">
+    <div class="modal-title">Log emergency expense</div>
+    <div class="form-group">
+      <label class="form-label">What was it for?</label>
+      <input class="form-input" type="text" id="emergDesc" placeholder="e.g. Car repair, Medical bill..." />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Amount</label>
+      <input class="form-input" type="number" id="emergAmt" placeholder="0.00" inputmode="decimal" />
+    </div>
+    <div class="modal-actions">
+      <button class="add-btn secondary" onclick="closeEmergModal()">Cancel</button>
+      <button class="add-btn" onclick="addEmergency()">Add</button>
+    </div>
+  </div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPage('home', this)">
+    <span class="nav-icon">🏠</span>
+    <span>Home</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('bills', this)">
+    <span class="nav-icon">📋</span>
+    <span>Bills</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('emergency', this)">
+    <span class="nav-icon">⚠️</span>
+    <span>Emergency</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('debts', this)">
+    <span class="nav-icon">📉</span>
+    <span>Debts</span>
+  </button>
+</nav>
+
+<script>
+const WEEKLY_PAY = 1362;
+const WEEKLY_SET_ASIDE = 777;
+const WEEKLY_VARIABLE = 390; // groceries, fuel, food, etc per week
+
+const BILLS = [
+  { name: "Housing",               amount: 1050.00, due: 1,  priority: 1 },
+  { name: "Toyota Financial",      amount: 844.78,  due: 4,  priority: 1 },
+  { name: "Capital One",           amount: 25.00,   due: 15, priority: 3 },
+  { name: "401K Loan (auto)",      amount: 386.83,  due: 16, priority: 2, auto: true },
+  { name: "Mom — motorcycle",      amount: 300.00,  due: 17, priority: 1 },
+  { name: "Verizon card",          amount: 200.00,  due: 19, priority: 2 },
+  { name: "Discover loan",         amount: 188.11,  due: 27, priority: 2 },
+  { name: "Wells Fargo couch",     amount: 167.94,  due: 28, priority: 2 },
+  { name: "Harley Davidson card",  amount: 85.00,   due: 28, priority: 3 },
+  { name: "Apple card",            amount: 116.74,  due: 31, priority: 3 },
+];
+
+const DEBTS = [
+  { name: "Capital One",        balance: 963.45,  apr: 23.49, min: 25.00,   priority: 1, color: "#ff5f6d" },
+  { name: "Harley Davidson",    balance: 2644.44, apr: 22.49, min: 85.00,   priority: 2, color: "#ff5f6d" },
+  { name: "Apple (revolving)",  balance: 881.98,  apr: 19.49, min: 25.00,   priority: 3, color: "#ff5f6d" },
+  { name: "Discover loan",      balance: 2857.59, apr: 7.99,  min: 188.11,  priority: 4, color: "#4f7dff" },
+  { name: "Wells Fargo couch",  balance: 5877.71, apr: 0,     min: 167.94,  priority: 5, color: "#8890b0" },
+  { name: "Mom — motorcycle",   balance: 10000,   apr: 0,     min: 300.00,  priority: 6, color: "#2ecc8f" },
+  { name: "401K loan",          balance: 1896.07, apr: 0,     min: 386.83,  priority: 7, color: "#8890b0" },
+  { name: "iPhone Pro ACMI",    balance: 228.64,  apr: 0,     min: 39.54,   priority: 8, color: "#8890b0" },
+  { name: "iPhone 16 ACMI",     balance: 209.80,  apr: 0,     min: 26.20,   priority: 9, color: "#8890b0" },
+  { name: "Toyota truck",       balance: 45806.04,apr: 3.99,  min: 844.78,  priority: 10, color: "#8890b0" },
+];
+
+let emergencies = JSON.parse(localStorage.getItem('bf_emergencies') || '[]');
+let paidBills = JSON.parse(localStorage.getItem('bf_paid') || '{}');
+let debtBalances = JSON.parse(localStorage.getItem('bf_debts') || 'null');
+if (!debtBalances) {
+  debtBalances = {};
+  DEBTS.forEach(d => debtBalances[d.name] = d.balance);
+}
+
+function saveData() {
+  localStorage.setItem('bf_emergencies', JSON.stringify(emergencies));
+  localStorage.setItem('bf_paid', JSON.stringify(paidBills));
+  localStorage.setItem('bf_debts', JSON.stringify(debtBalances));
+}
+
+function fmt(n) {
+  return '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function getWeekOfMonth() {
+  const d = new Date();
+  const day = d.getDate();
+  if (day <= 7)  return 1;
+  if (day <= 14) return 2;
+  if (day <= 21) return 3;
+  return 4;
+}
+
+function getBillsForWeek(week) {
+  const ranges = [[1,7],[8,14],[15,21],[22,31]];
+  const [lo, hi] = ranges[week - 1];
+  return BILLS.filter(b => {
+    const due = b.due === 31 ? 31 : b.due;
+    return due >= lo && due <= hi;
+  });
+}
+
+function getMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()}`;
+}
+
+function getEmergenciesThisMonth() {
+  const key = getMonthKey();
+  return emergencies.filter(e => e.month === key);
+}
+
+function getTotalEmergencyThisMonth() {
+  return getEmergenciesThisMonth().reduce((s, e) => s + e.amount, 0);
+}
+
+function render() {
+  const week = getWeekOfMonth();
+  const now = new Date();
+  const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  document.getElementById('headerSub').textContent = monthName;
+  document.getElementById('weekBadge').textContent = `Week ${week}`;
+
+  const emergTotal = getTotalEmergencyThisMonth();
+  const emergWeekly = emergTotal / 4;
+  const adjustedSetAside = Math.max(0, WEEKLY_SET_ASIDE + emergWeekly);
+  const available = WEEKLY_PAY - adjustedSetAside;
+  const weekBills = getBillsForWeek(week);
+  const weekBillTotal = weekBills.reduce((s, b) => s + b.amount, 0);
+  const extraForDebt = Math.max(0, available - WEEKLY_VARIABLE);
+
+  document.getElementById('setAsideAmt').textContent = fmt(adjustedSetAside);
+  document.getElementById('keepChecking').textContent = fmt(available);
+  document.getElementById('billsDueAmt').textContent = fmt(weekBillTotal);
+  document.getElementById('extraDebt').textContent = fmt(extraForDebt);
+  document.getElementById('toSavings').textContent = '-' + fmt(adjustedSetAside);
+  document.getElementById('emergImpact').textContent = emergTotal > 0 ? '-' + fmt(emergWeekly) : '-$0';
+  document.getElementById('available').textContent = fmt(available);
+
+  // Alerts
+  const alertArea = document.getElementById('alertArea');
+  alertArea.innerHTML = '';
+  if (emergTotal > 0) {
+    const el = document.createElement('div');
+    el.className = 'alert warning';
+    el.textContent = `Emergency expenses (${fmt(emergTotal)}) are reducing your extra debt payment by ${fmt(emergWeekly)}/wk this month.`;
+    alertArea.appendChild(el);
+  }
+  if (available < 500) {
+    const el = document.createElement('div');
+    el.className = 'alert danger';
+    el.textContent = `Tight week — only ${fmt(available)} left after bill fund. Watch fuel and food spending.`;
+    alertArea.appendChild(el);
+  }
+  if (week === 1) {
+    const el = document.createElement('div');
+    el.className = 'alert info';
+    el.textContent = `Housing + truck ($1,895) are due this week — your heaviest bill week of the month.`;
+    alertArea.appendChild(el);
+  }
+
+  // This week's bills
+  const thisWeekEl = document.getElementById('thisWeekBills');
+  if (weekBills.length === 0) {
+    thisWeekEl.innerHTML = '<div style="color:var(--muted);font-size:14px;">No fixed bills due this week — build savings for next week.</div>';
+  } else {
+    const mk = `${getMonthKey()}-w${week}`;
+    thisWeekEl.innerHTML = weekBills.map(b => {
+      const paid = paidBills[`${mk}-${b.name}`];
+      return `<div class="bill-row">
+        <div class="bill-left">
+          <div class="bill-name">${b.name}</div>
+          <div class="bill-due">Due ${b.due === 31 ? 'last day' : b.due + (b.due===1?'st':b.due===2?'nd':b.due===3?'rd':'th')}${b.auto ? ' · auto-pay' : ''}</div>
+        </div>
+        <div class="bill-right">
+          <div class="bill-amount${paid ? ' paid' : ''}">${fmt(b.amount)}</div>
+          ${!b.auto ? `<div class="bill-status${paid ? ' done' : ''}" onclick="togglePaid('${mk}','${b.name}')">${paid ? '✓' : ''}</div>` : '<div style="width:28px"></div>'}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  renderBillsByWeek();
+  renderEmergencies();
+  renderDebts();
+}
+
+function togglePaid(mk, name) {
+  const key = `${mk}-${name}`;
+  paidBills[key] = !paidBills[key];
+  saveData();
+  render();
+}
+
+function renderBillsByWeek() {
+  const el = document.getElementById('billsByWeek');
+  const weekNames = ['Last Thu of prior month → due 1st–7th','2nd Thursday → due 8th–14th','3rd Thursday → due 15th–21st','4th Thursday → due 22nd–31st'];
+  const currentWeek = getWeekOfMonth();
+
+  el.innerHTML = [1,2,3,4].map(w => {
+    const bills = getBillsForWeek(w);
+    const total = bills.reduce((s,b) => s+b.amount, 0);
+    const isCurrent = w === currentWeek;
+    const totalClass = total > 1500 ? 'heavy' : total === 0 ? 'light' : '';
+
+    const billRows = bills.length === 0
+      ? `<div style="color:var(--muted);font-size:13px;padding:4px 0;">No fixed bills — savings accumulation week</div>`
+      : bills.map(b => `
+        <div class="transfer-row">
+          <div><div class="transfer-name">${b.name}${b.auto ? ' <span style="font-size:11px;color:var(--muted);">(auto)</span>' : ''}</div>
+          <div class="transfer-due">Due ${b.due === 31 ? 'last day' : b.due + 'th'}</div></div>
+          <div class="transfer-amt">${fmt(b.amount)}</div>
+        </div>`).join('');
+
+    return `<div class="week-block" style="${isCurrent ? 'border-color:var(--accent);' : ''}">
+      <div class="week-header">
+        <div class="week-name" style="${isCurrent ? 'color:var(--accent);' : ''}">Week ${w}${isCurrent ? ' ← now' : ''}</div>
+        <div class="week-total ${totalClass}">${total > 0 ? fmt(total) : 'No bills'}</div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${weekNames[w-1]}</div>
+      ${billRows}
+    </div>`;
+  }).join('');
+}
+
+function renderEmergencies() {
+  const monthItems = getEmergenciesThisMonth();
+  const total = monthItems.reduce((s,e) => s+e.amount, 0);
+
+  document.getElementById('emergTotal').textContent = fmt(total);
+
+  const extraLost = total / 4;
+  document.getElementById('emergImpactText').textContent = total > 0
+    ? `Reducing extra debt payment by ${fmt(extraLost)}/wk this month`
+    : 'No impact on current plan';
+
+  const maxBudget = 500;
+  const pct = Math.min(100, (total / maxBudget) * 100);
+  document.getElementById('emergBar').style.width = pct + '%';
+
+  const listEl = document.getElementById('emergencyList');
+  if (emergencies.length === 0) {
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No emergency expenses logged</div>';
+    return;
+  }
+
+  listEl.innerHTML = emergencies.slice().reverse().map((e, ri) => {
+    const i = emergencies.length - 1 - ri;
+    const isThisMonth = e.month === getMonthKey();
+    return `<div class="emergency-item" style="${!isThisMonth ? 'opacity:0.5;' : ''}">
+      <div>
+        <div class="emergency-desc">${e.desc}</div>
+        <div class="emergency-date">${e.dateStr}${!isThisMonth ? ' · prior month' : ''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="emergency-amount">${fmt(e.amount)}</div>
+        <button class="emergency-delete" onclick="deleteEmergency(${i})">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDebts() {
+  const totalDebt = DEBTS.filter(d => d.name !== 'Toyota truck')
+    .reduce((s,d) => s + (debtBalances[d.name] || d.balance), 0);
+
+  const startDebt = 25559;
+  const paidPct = Math.max(0, Math.min(100, ((startDebt - totalDebt) / startDebt) * 100));
+
+  document.getElementById('totalDebtAmt').textContent = fmt(totalDebt);
+  document.getElementById('debtBar').style.width = Math.max(2, paidPct) + '%';
+
+  const el = document.getElementById('debtList');
+  el.innerHTML = DEBTS.map(d => {
+    const bal = debtBalances[d.name] || d.balance;
+    const pct = Math.min(100, (bal / d.balance) * 100);
+    const isPriority = d.priority <= 3;
+    return `<div class="card" style="${isPriority ? 'border-color:rgba(255,95,109,0.3);' : ''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-size:15px;font-weight:600;">${d.name}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+            ${d.apr > 0 ? d.apr + '% APR · ' : '0% · '}Min ${fmt(d.min)}/mo
+            ${isPriority ? ' · <span style="color:var(--red);">priority #' + d.priority + '</span>' : ''}
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:18px;font-weight:700;">${fmt(bal)}</div>
+          <div style="font-size:11px;color:var(--muted);">remaining</div>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" style="width:${100-pct}%;background:${d.color};"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;">
+        <div style="display:flex;gap:8px;">
+          <button onclick="updateDebt('${d.name}', ${bal}, -${d.min})" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:6px;font-size:13px;cursor:pointer;">-Min</button>
+          <button onclick="promptDebtPayment('${d.name}', ${bal})" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:6px;font-size:13px;cursor:pointer;">Log payment</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);align-self:center;">${pct < 5 ? 'Just started' : Math.round(100-pct) + '% paid'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openEmergModal() {
+  document.getElementById('emergModal').classList.add('open');
+  setTimeout(() => document.getElementById('emergDesc').focus(), 100);
+}
+
+function closeEmergModal() {
+  document.getElementById('emergModal').classList.remove('open');
+  document.getElementById('emergDesc').value = '';
+  document.getElementById('emergAmt').value = '';
+}
+
+function addEmergency() {
+  const desc = document.getElementById('emergDesc').value.trim();
+  const amt = parseFloat(document.getElementById('emergAmt').value);
+  if (!desc || !amt || amt <= 0) return;
+  const now = new Date();
+  emergencies.push({
+    desc,
+    amount: amt,
+    month: getMonthKey(),
+    dateStr: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  });
+  saveData();
+  closeEmergModal();
+  render();
+  showPage('emergency', document.querySelectorAll('.nav-btn')[2]);
+}
+
+function deleteEmergency(i) {
+  emergencies.splice(i, 1);
+  saveData();
+  render();
+}
+
+function updateDebt(name, currentBal, change) {
+  const newBal = Math.max(0, currentBal + change);
+  debtBalances[name] = Math.round(newBal * 100) / 100;
+  saveData();
+  render();
+}
+
+function promptDebtPayment(name, currentBal) {
+  const amt = parseFloat(prompt(`Payment amount for ${name}:`));
+  if (!isNaN(amt) && amt > 0) {
+    updateDebt(name, currentBal, -amt);
+  }
+}
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+document.getElementById('emergModal').addEventListener('click', function(e) {
+  if (e.target === this) closeEmergModal();
+});
+
+render();
+</script>
+</body>
+</html>
