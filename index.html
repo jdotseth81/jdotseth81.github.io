@@ -175,13 +175,14 @@ const DEFAULT_SET_ASIDE = 777;
 const WEEKLY_VARIABLE = 390;
 
 const BILL_LIST = [
-  {id:'housing',   n:'Housing transfer',    a:550,    d:1,  note:'Your half — transfer to joint account'},
   {id:'toyota',    n:'Toyota Financial',    a:844.78, d:4,  note:'Truck payment'},
   {id:'cap1',      n:'Capital One',         a:25,     d:15, note:'23.49% APR — pay extra here first!'},
+  {id:'housing1',  n:'Housing transfer #1', a:525,    d:15, note:'Half of your monthly housing'},
   {id:'401k',      n:'401K loan',           a:386.83, d:16, note:'Auto payroll deduction', auto:true},
   {id:'mom',       n:'Mom — motorcycle',    a:300,    d:17, note:'0% — your Harley'},
   {id:'verizon',   n:'Verizon card',        a:200,    d:19, note:'Pay in full monthly'},
   {id:'discover',  n:'Discover loan',       a:188.11, d:27, note:'7.99% APR'},
+  {id:'housing2',  n:'Housing transfer #2', a:525,    d:28, note:'Funds the upcoming 1st'},
   {id:'wf',        n:'Wells Fargo couch',   a:167.94, d:28, note:'0% promo — confirm end date!'},
   {id:'harley',    n:'Harley Davidson',     a:85,     d:28, note:'22.49% APR — priority #2'},
   {id:'apple',     n:'Apple card',          a:116.74, d:31, note:'19.49% revolving + ACMI installments'},
@@ -280,7 +281,7 @@ function renderHome(){
   const focusBal=focus?(S.debts[focus.id]||focus.b):0;
 
   let alerts='';
-  if(w===1) alerts+=`<div class="alert alert-w">⚠️ Heaviest week — Housing + truck ($1,395) due. Transfer to savings first.</div>`;
+  if(w===1) alerts+=`<div class="alert alert-w">⚠️ Truck payment ($845) due the 4th — make sure savings covers it.</div>`;
   if(et>0)  alerts+=`<div class="alert alert-w">Emergency expenses (${fmt(et)}) spread across month — reducing extra by ${fmt(ew)}/wk.</div>`;
   if(avail<400) alerts+=`<div class="alert alert-d">Tight week — only ${fmt(avail)} after bill fund. Limit eating out and gas.</div>`;
   if(wb.length>0&&Object.keys(paid).length===0&&w>1) alerts+=`<div class="alert alert-i">Don't forget to mark bills paid as you pay them.</div>`;
